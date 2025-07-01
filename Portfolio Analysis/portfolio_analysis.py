@@ -88,13 +88,13 @@ def getDailyBeta(stocks, start, end):
 def getMonthlyBeta(stocks, start, end):
     # Get the data for the monthly returns of the stock
     stockData = getData(stocks, start, end)
-    monthlyStockData = stockData.resample('ME').last()                                          # ME = Month
+    monthlyStockData = stockData.resample('M').last()                                          # ME = Month
     stockReturnsData = monthlyStockData.pct_change().dropna()
 
     # '%GSPC' = S&P 500 Ticker
     # Get the data for the monthly returns of the market (S&P 500)
     marketData = getData("^GSPC", start, end)
-    monthlyMarketData = marketData.resample('ME').last()                                        # ME = Month
+    monthlyMarketData = marketData.resample('M').last()                                        # ME = Month
     marketReturnsData = monthlyMarketData.pct_change().dropna()
 
     X = sm.add_constant(marketReturnsData)
@@ -143,7 +143,7 @@ def getOverlappingMonthlyPeriods(ticker):
         print(f"Warning: No data available for {ticker}")
         return [], []
 
-    monthly_data = data.resample('ME').last().dropna()
+    monthly_data = data.resample('M').last().dropna()
     stock_start_date = monthly_data.index.min().replace(tzinfo=None)                            # Remove timezone
     stock_end_date = monthly_data.index.max().replace(tzinfo=None)                              # Remove timezone
 
@@ -272,14 +272,14 @@ def getStockExpectedReturn(ticker):
     startDate = endDate - dt.timedelta(days=365*5)
 
     stockData = getData(ticker, startDate, endDate)
-    stock_monthly = stockData.resample('ME').last()
+    stock_monthly = stockData.resample('M').last()
     stock_returns = stock_monthly.pct_change().dropna()
 
-    market_returns = fred.get_series(factors["Market Returns"]).resample("ME").last().pct_change()
-    inflation = fred.get_series(factors["Inflation"]).resample("ME").last().pct_change()
-    interest_rate = fred.get_series(factors["Interest Rate"]).resample("ME").last().diff()
-    industrial_production = fred.get_series(factors["Industrial Production"]).resample("ME").last().pct_change()
-    oil_price = fred.get_series(factors["Oil Price"]).resample("ME").last().pct_change()
+    market_returns = fred.get_series(factors["Market Returns"]).resample("M").last().pct_change()
+    inflation = fred.get_series(factors["Inflation"]).resample("M").last().pct_change()
+    interest_rate = fred.get_series(factors["Interest Rate"]).resample("M").last().diff()
+    industrial_production = fred.get_series(factors["Industrial Production"]).resample("M").last().pct_change()
+    oil_price = fred.get_series(factors["Oil Price"]).resample("M").last().pct_change()
     risk_free_rate = fred.get_series("DGS3MO").iloc[-1]
 
     data = pd.concat([stock_returns, market_returns, inflation, interest_rate, industrial_production, oil_price], axis = 1)
@@ -347,10 +347,10 @@ def getSharpeSortinoRatio(ticker):
     startDate = endDate - dt.timedelta(days=365*5)
 
     stockData = getData(ticker, startDate, endDate)
-    stock_monthly = stockData.resample('ME').last()
+    stock_monthly = stockData.resample('M').last()
     stock_returns = stock_monthly.pct_change().dropna()
 
-    risk_free_rates = fred.get_series("DGS3MO").resample("ME").last().dropna()
+    risk_free_rates = fred.get_series("DGS3MO").resample("M").last().dropna()
     risk_free_rates = risk_free_rates / 100
     monthly_risk_free_rates = (1 + risk_free_rates) ** (1 / 12) - 1
 
@@ -405,8 +405,7 @@ def modernPortfolioTheory(tickers):
     # get linear annual returns (linear returns instead of geometric for MPT) for each stock
     annual_returns = pd.Series(dtype='float')
     for ticker in tickers:
-        linear_annual_return, _ = getStockExpectedReturn(ticker)
-        linear_annual_return *= 12
+        _, linear_annual_return = getStockExpectedReturn(ticker)
 
         annual_returns[ticker] = linear_annual_return
 
@@ -419,6 +418,7 @@ def modernPortfolioTheory(tickers):
     cov_matrix = returns.cov() * 252
 
     # Set number of iterations and initialize array with 3 rows and num_iteration columns full of 0s  
+    # Randomizes 50000 possibles weightings for the portfolio
     num_iterations = 50000
     num_tickers = len(tickers)
 
@@ -450,7 +450,7 @@ def modernPortfolioTheory(tickers):
     plt.scatter(results_df["Risk"], results_df["Return"], c=results_df["Sharpe"], cmap="viridis", alpha=0.7)
     plt.colorbar(label="Sharpe Ratio")
     plt.xlabel("Risk (Standard Deviation)")
-    plt.ylabel("Expected Return")
+    plt.ylabel("Expected Return (%)")
     plt.title("Efficient Frontier")
     plt.scatter(results[1, max_sharpe_idx], results[0, max_sharpe_idx],
                 color='red', marker='*', s=100, label='Max Sharpe Ratio')
@@ -460,3 +460,5 @@ def modernPortfolioTheory(tickers):
     plt.savefig("plot.png")
 
     return max_sharpe_portfolio
+
+modernPortfolioTheory(["WMT","AAPL","TSLA"])
