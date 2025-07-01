@@ -405,9 +405,16 @@ def modernPortfolioTheory(tickers):
     # get linear annual returns (linear returns instead of geometric for MPT) for each stock
     annual_returns = pd.Series(dtype='float')
     for ticker in tickers:
-        _, linear_annual_return = getStockExpectedReturn(ticker)
+        monthly_returns, _ = getStockExpectedReturn(ticker)
+
+        linear_annual_return = monthly_returns * 12
 
         annual_returns[ticker] = linear_annual_return
+
+    # Have to sort annual_returns by alphabetical order in terms of the index
+    # as the subsequent cov_matrix will be in alphabetical order 
+    # The two need to be in the same order as each other
+    annual_returns = annual_returns.sort_index()
 
     # obtain the covariance matrix for the stocks
     endDate = dt.datetime.now()
@@ -460,5 +467,3 @@ def modernPortfolioTheory(tickers):
     plt.savefig("plot.png")
 
     return max_sharpe_portfolio
-
-modernPortfolioTheory(["WMT","AAPL","TSLA"])
