@@ -10,8 +10,11 @@ from statsmodels.regression.linear_model import OLS
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from fredapi import Fred
+from dotenv import load_dotenv
+load_dotenv()
+import os
 
-FRED_API_KEY = "85304a96fc1ffacd6c24c76004fd49be"
+FRED_API_KEY = os.getenv("FRED_API_KEY")
 fred = Fred(api_key=FRED_API_KEY)
 
 bullMarkets = [[dt.datetime(1966, 10, 7), dt.datetime(1968, 11, 29)],[dt.datetime(1970, 5, 26), dt.datetime(1973, 1, 11)],[dt.datetime(1974, 10, 3), dt.datetime(1980, 11, 28)],
